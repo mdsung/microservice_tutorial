@@ -11,6 +11,13 @@ import (
 
 func main() {
 	fastergoding.Run()
+
+	port, ok := os.LookupEnv("PORT")
+
+	if !ok {
+		port = "3000"
+	}
+
 	app := fiber.New()
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.SendString("Hello, World!")
@@ -19,7 +26,7 @@ func main() {
 		return playVideoHandler(c)
 	})
 
-	log.Fatal(app.Listen(":3000"))
+	log.Fatal(app.Listen(":" + port))
 }
 
 func playVideoHandler(c *fiber.Ctx) error {
