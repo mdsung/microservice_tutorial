@@ -4,14 +4,11 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strconv"
 
 	"github.com/gofiber/fiber/v2"
 )
 
 func main() {
-	// fastergoding.Run()
-
 	port, ok := os.LookupEnv("PORT")
 	fmt.Println("port:", port)
 	if !ok {
@@ -30,20 +27,26 @@ func main() {
 }
 
 func playVideoHandler(c *fiber.Ctx) error {
-	videoPath := "videos/file_example_MP4_480_1_5MG.mp4"
+	videoPath := "file_example_MP4_480_1_5MG.mp4"
 
-	file, err := os.Open(videoPath)
-	if err != nil {
-		return fiber.NewError(fiber.StatusNotFound, "Video not found")
+	a := fiber.AcquireAgent()
+	req := a.Request()
+	req.Header.SetMethod(fiber.MethodGet)
+	req.SetRequestURI("http://localhost:4000/video?path=" + videoPath)
+
+	if err := a.Parse(); err != nil {
+		panic(err)
 	}
-	defer file.Close()
 
-	fileInfo, _ := file.Stat()
-	fileSize := fileInfo.Size()
+	code, body, errs := a.Bytes()
+	if len(errs) > 0 {
+		panic(errs[0])
+	}
+	if code != 200 {
+		panic(code)
+	}
 
-	c.Status(fiber.StatusPartialContent)
 	c.Set(fiber.HeaderContentType, "video/mp4")
-	c.Set("Content-Length", strconv.Itoa(int(fileSize)))
-
-	return c.SendFile(videoPath)
+	c.Set(fiber.HeaderContentLength, fmt.Sprintf("%d", len(body)))
+	return c.Send(body)
 }
